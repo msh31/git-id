@@ -4,6 +4,7 @@
 #include <string>
 #include <algorithm>
 #include <cctype>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
 
@@ -51,30 +52,45 @@ std::string extract_owner(std::string_view url) {
     return str;
 }
 
+std::unordered_map<std::string, std::string> load_rules() {
+    std::unordered_map<std::string, std::string> res{};
+
+    //TODO
+
+    return res;
+}
+
 auto main( int argc, char** argv ) -> int {
-    if (argc < 3) { //bin - remote - url
-        std::println(stderr, "[-] invalid argument count!");
-        //todo: print help?
+    auto log_and_exit = [](std::string_view msg) -> int {
+        std::println(stderr, "{}", msg);
         return 1;
+    };
+
+    if (argc < 3) { //bin - remote - url
+        return log_and_exit("[-] invalid argument count!");
+        //todo: print help?
     }
 
     auto c_path = config_path();
     if (c_path.empty()) {
-        std::println(stderr, "[-] failed to get environment variable for the config, blocking this push!");
-        return 1;
+        return log_and_exit("[-] failed to get environment variable for the config, blocking this push!");
     }
 
     auto c_file = c_path / ".git-identities";
     if (!fs::is_regular_file(c_file)) {
-        std::println(stderr, "[-] config file not found, blocking this push!");
-        return 1;
+        return log_and_exit("[-] config file not found, blocking this push!");
+    }
+
+    auto rules = load_rules();
+    if (rules.empty()) {
+        return log_and_exit("[-] failed to load rules, blocking this push!"); //to be re-evaluated
     }
     
     auto owner = extract_owner(argv[2]);
     if (owner.empty()) {
-        std::println(stderr, "[-] failed to get owner of this repository, blocking this push!");
-        return 1;
+        return log_and_exit("[-] failed to get owner of this repository, blocking this push!");
     }
+
     std::println("[+] found repository owner: {}", owner);
 
     return 0;
