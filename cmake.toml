@@ -2,7 +2,10 @@
 [project]
 name = "git-id"
 
-target.git-id]
+[variables]
+CMAKE_EXPORT_COMPILE_COMMANDS = true
+
+[target.git-id]
 type = "executable" # static, shared
 sources = ["src/**.cpp", "src/**.hpp"]
 compile-features = ["cxx_std_23"]

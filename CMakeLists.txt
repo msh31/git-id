@@ -24,8 +24,31 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS cmake.toml)
 endif()
 
+# Variables
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 project(git-id
 	LANGUAGES
 		C
 		CXX
 )
+
+# Target: git-id
+set(git-id_SOURCES
+	cmake.toml
+	"src/main.cpp"
+)
+
+add_executable(git-id)
+
+target_sources(git-id PRIVATE ${git-id_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${git-id_SOURCES})
+
+target_compile_features(git-id PRIVATE
+	cxx_std_23
+)
+
+get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} VS_STARTUP_PROJECT)
+if(NOT CMKR_VS_STARTUP_PROJECT)
+	set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT git-id)
+endif()
