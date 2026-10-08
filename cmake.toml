@@ -1,0 +1,8 @@
+# Reference: https://build-cpp.github.io/cmkr/cmake-toml
+[project]
+name = "git-id"
+
+target.git-id]
+type = "executable" # static, shared
+sources = ["src/**.cpp", "src/**.hpp"]
+compile-features = ["cxx_std_23"]
