@@ -1,6 +1,11 @@
 #include <print>
 
+#include "globals.hpp"
+
 auto main( ) -> int {
-    std::println( "hallo" );
+    if ( fs::exists( m_config_file ) ) {
+        // todo: load config
+    }
+
     return 0;
 }
