@@ -111,6 +111,17 @@ auto load_rules( const fs::path& p ) -> rules_t {
             continue;
         }
 
+        std::istringstream kss(key);
+        std::string owner_key{ };
+        std::vector<std::string> owners{};
+        while (std::getline(kss, owner_key, '|')) {
+            auto trimmed = trim(owner_key);
+            if (trimmed.empty()) {
+                continue;
+            }
+            owners.push_back(trimmed);
+        }
+
         std::istringstream ss( val );
         std::string email{ };
         while ( std::getline( ss, email, ',' ) ) {
@@ -118,7 +129,9 @@ auto load_rules( const fs::path& p ) -> rules_t {
             if ( trimmed.empty( ) ) {
                 continue;
             }
-            rules[key].push_back( trimmed );
+            for (const auto& owner : owners) {
+                rules[owner].push_back(trimmed);
+            }
         }
     }
 
