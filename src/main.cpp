@@ -247,7 +247,7 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
 
 auto main( int argc, char** argv ) -> int {
     auto log_and_exit = []( std::string_view msg ) -> int {
-        std::println( stderr, "{}", msg );
+        std::println( stderr, "{}, blocking this push! You can bypass it by using 'git push --no-verify'", msg );
         return 1;
     };
 
@@ -258,27 +258,27 @@ auto main( int argc, char** argv ) -> int {
 
     auto c_path = config_path( );
     if ( c_path.empty( ) ) {
-        return log_and_exit( "[-] failed to get environment variable for the config, blocking this push!" );
+        return log_and_exit( "[-] failed to get environment variable for the config" );
     }
 
     auto c_file = c_path / ".git-identities";
     if ( !fs::is_regular_file( c_file ) ) {
-        return log_and_exit( "[-] config file not found, blocking this push!" );
+        return log_and_exit( "[-] config file not found" );
     }
 
     auto rules = load_rules( c_file );
     if ( rules.empty( ) ) {
-        return log_and_exit( "[-] failed to load rules, blocking this push!" ); // to be re-evaluated
+        return log_and_exit( "[-] failed to load rules" ); // to be re-evaluated
     }
 
     auto owner = extract_owner( argv[2] );
     if ( owner.empty( ) ) {
-        return log_and_exit( "[-] failed to get owner of this repository, blocking this push!" );
+        return log_and_exit( "[-] failed to get owner of this repository" );
     }
     std::println( "[+] found repository owner: {}", owner );
 
     if ( rules.find( owner ) == rules.end( ) ) {
-        return log_and_exit( "[-] owner was not found in the rules, blocking this push!" );
+        return log_and_exit( "[-] owner was not found in the rules" );
     }
 
     std::string line{ };
@@ -287,7 +287,7 @@ auto main( int argc, char** argv ) -> int {
         std::istringstream iss( line );
         iss >> local_ref >> local_oid >> remote_ref >> remote_oid;
         if ( !iss ) {
-            return log_and_exit( "[-] failed to split refs, blocking this push!" );
+            return log_and_exit( "[-] failed to split refs" );
         }
 
         auto l_start = local_oid.find_first_not_of( '0' );
@@ -313,7 +313,7 @@ auto main( int argc, char** argv ) -> int {
 
             const auto& allowed = rules.at( owner );
             if ( std::find( allowed.begin( ), allowed.end( ), email ) == allowed.end( ) ) {
-                auto str = std::format( "[-] failed to find {}, blocking this push!", email );
+                auto str = std::format( "[-] failed to find {}", email );
                 return log_and_exit( str );
             }
         }
