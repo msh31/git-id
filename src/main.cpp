@@ -265,7 +265,9 @@ auto main( int argc, char** argv ) -> int {
     };
 
     if (argc > 1 && std::strcmp(argv[1], "install") == 0) {
-        if (!fs::exists(".git/hooks")) {
+        bool is_global = argc > 2 && std::strcmp(argv[2], "global") == 0;
+
+        if (!is_global && !fs::exists(".git/hooks")) {
             std::println(stderr, "[-] failed to find .git/hooks folder, are you sure this is a git repository?");
             return 1;
         }
@@ -283,7 +285,22 @@ auto main( int argc, char** argv ) -> int {
 #elif defined (__linux__) || defined(__APPLE__)
         //todo
 #endif
-        fs::path tp = ".git/hooks" / tpf;
+
+        fs::path tp{};
+        if (is_global) {
+            auto ltp = config_path() / ".git-id" / "hooks"; //unlikely that home or userprofile isn't set if so, well too bad
+            tp = ltp / tpf;
+            std::error_code ec;
+            fs::create_directories(ltp, ec);
+            if (ec) {
+                std::println(stderr, "[-] failed to create global config directory: {}", ec.message());
+                return 1;
+            }
+        }
+        else {
+            tp = ".git/hooks" / tpf;
+        }
+
         if (fs::exists(tp)) {
             std::println(stderr, "[-] a pre-existing hook was found! abandoning install.");
             return 1;
