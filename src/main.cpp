@@ -250,7 +250,6 @@ auto run_git(const std::vector<std::string>& args) -> std::optional<std::string>
     return str;
 }
 
-
 auto list_outgoing_author_emails( const std::string& local, const std::string& remote ) -> std::optional<std::string> {
 
     std::vector<std::string> args = { "git", "log", "--format=%ae%n%ce" };
@@ -272,7 +271,7 @@ auto main( int argc, char** argv ) -> int {
     };
 
     if (argc > 1 && std::strcmp(argv[1], "install") == 0) {
-        bool is_global = argc > 2 && std::strcmp(argv[2], "global") == 0;
+        bool is_global = argc > 2 && std::strcmp(argv[2], "--global") == 0;
 
         if (!is_global && !fs::exists(".git/hooks")) {
             std::println(stderr, "[-] failed to find .git/hooks folder, are you sure this is a git repository?");
@@ -318,6 +317,13 @@ auto main( int argc, char** argv ) -> int {
         if (ec) {
             std::println(stderr, "[-] failed to copy file for install purposes because: {}", ec.message());
             return 1;
+        }
+        if (is_global) {
+            auto rg_res = run_git({ "git", "config", "--global", "core.hooksPath", tp.parent_path().string() });
+            if (rg_res == std::nullopt) {
+                std::println(stderr, "[-] failed to install globally!");
+                return 1;
+            }
         }
         std::println(stdout, "[+] succesfully installed git-id here: {}", tp.string());
         return 0;
