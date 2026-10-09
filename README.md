@@ -19,12 +19,9 @@ Applying this globally will prevent any pre-existing hooks from running
 
 ## Usage
 1. Create a config here: ``~/.git-identities``
-2. Setup your identities, you can do it like so:
-```bash 
-marco|msh31: marco@marco007.dev, marco@localhost
-verysecretidentity: user@secret.com
-```
-It is formatted like so: ``owner1|owner2: user@mail.com, user@second-mail.com``
+2. Setup your identities, an example entry looks like this:  
+``owner1|owner2: user@mail.com, user@second-mail.com``
+3. Use git and once a mis-match occurs, the hook will catch it
 
 ---
 
