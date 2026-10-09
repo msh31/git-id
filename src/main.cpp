@@ -264,6 +264,41 @@ auto main( int argc, char** argv ) -> int {
         return 1;
     };
 
+    if (argc > 1 && std::strcmp(argv[1], "install") == 0) {
+        if (!fs::exists(".git/hooks")) {
+            std::println(stderr, "[-] failed to find .git/hooks folder, are you sure this is a git repository?");
+            return 1;
+        }
+
+        fs::path tpf = "pre-push";
+        fs::path sp{};
+#ifdef _WIN32
+        tpf += ".exe";
+        char buffer[MAX_PATH] ;
+        if (GetModuleFileNameA(nullptr, buffer, sizeof(buffer)) == 0) {
+            std::println(stderr, "[-] failed to get own path, abandoning install.");
+            return 1;
+        }
+        sp = buffer;
+#elif defined (__linux__) || defined(__APPLE__)
+        //todo
+#endif
+        fs::path tp = ".git/hooks" / tpf;
+        if (fs::exists(tp)) {
+            std::println(stderr, "[-] a pre-existing hook was found! abandoning install.");
+            return 1;
+        }
+
+        std::error_code ec;
+        fs::copy_file(sp, tp, ec);
+        if (ec) {
+            std::println(stderr, "[-] failed to copy file for install purposes because: {}", ec.message());
+            return 1;
+        }
+        std::println(stdout, "[+] succesfully installed git-id here: {}", tp.string());
+        return 0;
+    }
+
     if ( argc < 3 ) { // bin - remote - url
         return log_and_exit( "[-] invalid argument count!" );
         // todo: print help?
