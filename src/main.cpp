@@ -126,6 +126,7 @@ auto load_rules( const fs::path& p ) -> rules_t {
 
 auto list_outgoing_author_emails( const std::string& local, const std::string& remote ) -> std::string {
     std::string str{ };
+
 #if defined( __linux__ ) || defined( __APPLE__ )
     int fds[2];
     pipe( fds );
@@ -150,14 +151,14 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
         close( fds[0] );
         w = waitpid( pid, &status, 0 );
         if ( w == -1 ) {
-            std::println( "waitpid failed: {}", strerror( errno ) );
+            std::println(stderr, "waitpid failed: {}", strerror( errno ) );
             return { };
         }
     }
 
     if ( pid == 0 ) {
         if ( dup2( fds[1], STDOUT_FILENO ) == -1 ) {
-            std::println( "dup2 failed: {}", strerror( errno ) );
+            std::println(stderr,  "dup2 failed: {}", strerror( errno ) );
             _exit( 1 );
         }
 
@@ -167,10 +168,10 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
 
         std::vector<std::string> args{ "git", "log", "--format=%ae%n%ce", remote + ".." + local };
         std::vector<char*> argv;
-        for ( auto& a : args ) {
-            argv.push_back( a.data( ) );
+        for (auto& a : args) {
+            argv.push_back(a.data());
         }
-        argv.push_back( nullptr );
+        argv.push_back(nullptr);
 
         execvp( "git", argv.data( ) );
         _exit( 127 );
@@ -178,8 +179,51 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
 #endif
 
 #ifdef _WIN32
-    // todo
-    // https://learn.microsoft.com/en-us/windows/win32/procthread/creating-processes
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
+
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    ZeroMemory(&pi, sizeof(pi));
+
+    std::string argv_w = "git log --format=%ae%n%ce " + remote + ".." + local;
+
+    SECURITY_ATTRIBUTES sa{ sizeof(sa), nullptr, TRUE };
+    HANDLE read_end{ }, write_end{ };
+    CreatePipe(&read_end, &write_end, &sa, 0);
+    SetHandleInformation(read_end, HANDLE_FLAG_INHERIT, 0);
+
+    si.hStdOutput = write_end;
+    si.dwFlags |= STARTF_USESTDHANDLES;
+    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+
+    if (!CreateProcessA(NULL, argv_w.data(), NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) {
+        std::println(stderr, "[-] CreateProcess failed {}", GetLastError());
+        CloseHandle(write_end);
+        CloseHandle(read_end);
+        return {};
+    }
+    CloseHandle(write_end);
+
+    char buffer[4096];
+    DWORD n = 0;
+    while (ReadFile(read_end, buffer, sizeof buffer, &n, nullptr) && n > 0) {
+        str.append(buffer, n);
+    }
+    CloseHandle(read_end);
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    DWORD code = 0;
+    GetExitCodeProcess(pi.hProcess, &code);
+    if (code != 0) {
+        std::println(stderr, "[-] git failure, exit code: {}", code);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        return { };
+    }
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
 #endif
 
     return str;
