@@ -126,6 +126,14 @@ auto load_rules( const fs::path& p ) -> rules_t {
 
 auto list_outgoing_author_emails( const std::string& local, const std::string& remote ) -> std::string {
     std::string str{ };
+    std::vector<std::string> args = { "git", "log", "--format=%ae%n%ce" };
+
+    if (remote.find_first_not_of('0') == remote.npos) {
+        args.insert(args.end(), { local, "--not", "--remotes" });
+    }
+    else {
+        args.push_back(remote + ".." + local);
+    }
 
 #if defined( __linux__ ) || defined( __APPLE__ )
     int fds[2];
@@ -166,7 +174,6 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
         close( fds[0] );
         close( fds[1] );
 
-        std::vector<std::string> args{ "git", "log", "--format=%ae%n%ce", remote + ".." + local };
         std::vector<char*> argv;
         for (auto& a : args) {
             argv.push_back(a.data());
@@ -186,8 +193,6 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
 
-    std::string argv_w = "git log --format=%ae%n%ce " + remote + ".." + local;
-
     SECURITY_ATTRIBUTES sa{ sizeof(sa), nullptr, TRUE };
     HANDLE read_end{ }, write_end{ };
     CreatePipe(&read_end, &write_end, &sa, 0);
@@ -197,7 +202,13 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
     si.dwFlags |= STARTF_USESTDHANDLES;
     si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
-    if (!CreateProcessA(NULL, argv_w.data(), NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) {
+    std::string argz{};
+    for (auto& a : args) {
+        if (!argz.empty()) argz += ' ';
+        argz += a;
+    }
+
+    if (!CreateProcessA(NULL, argz.data(), NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) {
         std::println(stderr, "[-] CreateProcess failed {}", GetLastError());
         CloseHandle(write_end);
         CloseHandle(read_end);
@@ -278,10 +289,6 @@ auto main( int argc, char** argv ) -> int {
         if ( l_start == local_oid.npos ) { // deleting a remote branch requires no commits
             continue;
         }
-        // auto r_start = remote_oid.find_first_not_of('0');
-        // if(r_start == remote_oid.npos) {
-        //
-        // }
 
         std::println( "[+] found refs: {} {} {} {}", local_ref, local_oid, remote_ref, remote_oid );
 
