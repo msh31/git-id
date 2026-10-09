@@ -138,42 +138,34 @@ auto load_rules( const fs::path& p ) -> rules_t {
     return rules;
 }
 
-auto list_outgoing_author_emails( const std::string& local, const std::string& remote ) -> std::optional<std::string> {
+auto run_git(const std::vector<std::string>& args) -> std::optional<std::string> {
     std::string str{ };
-    std::vector<std::string> args = { "git", "log", "--format=%ae%n%ce" };
-
-    if (remote.find_first_not_of('0') == remote.npos) {
-        args.insert(args.end(), { local, "--not", "--remotes" });
-    }
-    else {
-        args.push_back(remote + ".." + local);
-    }
 
 #if defined( __linux__ ) || defined( __APPLE__ )
     int fds[2];
-    pipe( fds );
+    pipe(fds);
 
-    pid_t pid = fork( );
+    pid_t pid = fork();
     pid_t w = 0;
     int status;
 
-    if ( pid > 0 ) {
-        close( fds[1] );
+    if (pid > 0) {
+        close(fds[1]);
 
         char buffer[4096];
         ssize_t n;
-        while ( ( n = read( fds[0], buffer, sizeof buffer ) ) != 0 ) {
-            if ( n == -1 ) {
-                if ( errno == EINTR ) continue;
+        while ((n = read(fds[0], buffer, sizeof buffer)) != 0) {
+            if (n == -1) {
+                if (errno == EINTR) continue;
                 break;
             }
-            str.append( buffer, n );
+            str.append(buffer, n);
         }
 
-        close( fds[0] );
-        w = waitpid( pid, &status, 0 );
-        if ( w == -1 ) {
-            std::println(stderr, "waitpid failed: {}", strerror( errno ) );
+        close(fds[0]);
+        w = waitpid(pid, &status, 0);
+        if (w == -1) {
+            std::println(stderr, "waitpid failed: {}", strerror(errno));
             return std::nullopt;
         }
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
@@ -182,15 +174,15 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
         }
     }
 
-    if ( pid == 0 ) {
-        if ( dup2( fds[1], STDOUT_FILENO ) == -1 ) {
-            std::println(stderr,  "dup2 failed: {}", strerror( errno ) );
-            _exit( 1 );
+    if (pid == 0) {
+        if (dup2(fds[1], STDOUT_FILENO) == -1) {
+            std::println(stderr, "dup2 failed: {}", strerror(errno));
+            _exit(1);
         }
 
         // can fail but whatever
-        close( fds[0] );
-        close( fds[1] );
+        close(fds[0]);
+        close(fds[1]);
 
         std::vector<char*> argv;
         for (auto& a : args) {
@@ -198,8 +190,8 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
         }
         argv.push_back(nullptr);
 
-        execvp( "git", argv.data( ) );
-        _exit( 127 );
+        execvp("git", argv.data());
+        _exit(127);
     }
 #endif
 
@@ -256,6 +248,21 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
 #endif
 
     return str;
+}
+
+
+auto list_outgoing_author_emails( const std::string& local, const std::string& remote ) -> std::optional<std::string> {
+
+    std::vector<std::string> args = { "git", "log", "--format=%ae%n%ce" };
+
+    if (remote.find_first_not_of('0') == remote.npos) {
+        args.insert(args.end(), { local, "--not", "--remotes" });
+    }
+    else {
+        args.push_back(remote + ".." + local);
+    }
+
+    return run_git(args);
 }
 
 auto main( int argc, char** argv ) -> int {
