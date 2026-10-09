@@ -9,6 +9,7 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 // clang-format on
 
 namespace fs = std::filesystem;
@@ -143,6 +144,17 @@ auto main( int argc, char** argv ) -> int {
 
     if ( rules.find( owner ) == rules.end( ) ) {
         return log_and_exit( "[-] owner was not found in the rules, blocking this push!" );
+    }
+
+    std::string line{ };
+    while ( std::getline( std::cin, line ) ) {
+        std::istringstream iss( line );
+        std::string local_ref, local_oid, remote_ref, remote_oid;
+        iss >> local_ref >> local_oid >> remote_ref >> remote_oid;
+        if ( !iss ) {
+            return log_and_exit( "[-] failed to split refs, blocking this push!" );
+        }
+        std::println( "[+] found refs: {} {} {} {}", local_ref, local_oid, remote_ref, remote_oid );
     }
 
     return 0;
