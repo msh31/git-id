@@ -229,6 +229,16 @@ auto main( int argc, char** argv ) -> int {
         if ( !iss ) {
             return log_and_exit( "[-] failed to split refs, blocking this push!" );
         }
+
+        auto l_start = local_oid.find_first_not_of( '0' );
+        if ( l_start == local_oid.npos ) { // deleting a remote branch requires no commits
+            continue;
+        }
+        // auto r_start = remote_oid.find_first_not_of('0');
+        // if(r_start == remote_oid.npos) {
+        //
+        // }
+
         std::println( "[+] found refs: {} {} {} {}", local_ref, local_oid, remote_ref, remote_oid );
 
         auto out_mails = list_outgoing_author_emails( local_oid, remote_oid );
