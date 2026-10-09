@@ -30,7 +30,7 @@ namespace fs = std::filesystem;
 
 using rules_t = std::unordered_map<std::string, std::vector<std::string>>;
 
-fs::path config_path( ) {
+auto config_path( ) -> fs::path {
     const char* home = nullptr;
 
 #ifdef _WIN32
@@ -43,7 +43,7 @@ fs::path config_path( ) {
     return { };
 }
 
-std::string extract_owner( std::string_view url ) {
+auto extract_owner( std::string_view url ) -> std::string {
     std::string str{ };
 
     if ( url.ends_with( '/' ) ) {
@@ -73,7 +73,7 @@ std::string extract_owner( std::string_view url ) {
 }
 
 // why cant we have trim in C++..?
-std::string trim( std::string str ) {
+auto trim( std::string str ) -> std::string {
     auto start = str.find_first_not_of( " \t\r\n" );
     if ( start == str.npos ) {
         return { };
@@ -83,7 +83,7 @@ std::string trim( std::string str ) {
     return str.substr( start, end - start + 1 );
 }
 
-rules_t load_rules( const fs::path& p ) {
+auto load_rules( const fs::path& p ) -> rules_t {
     rules_t rules{ };
 
     std::ifstream in( p );
