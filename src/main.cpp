@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <optional>
 
 // platformzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
 #ifdef _WIN32
@@ -124,7 +125,7 @@ auto load_rules( const fs::path& p ) -> rules_t {
     return rules;
 }
 
-auto list_outgoing_author_emails( const std::string& local, const std::string& remote ) -> std::string {
+auto list_outgoing_author_emails( const std::string& local, const std::string& remote ) -> std::optional<std::string> {
     std::string str{ };
     std::vector<std::string> args = { "git", "log", "--format=%ae%n%ce" };
 
@@ -160,7 +161,11 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
         w = waitpid( pid, &status, 0 );
         if ( w == -1 ) {
             std::println(stderr, "waitpid failed: {}", strerror( errno ) );
-            return { };
+            return std::nullopt;
+        }
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            std::println(stderr, "waitpid failed: status: {}", WEXITSTATUS(status));
+            return std::nullopt;
         }
     }
 
@@ -212,7 +217,7 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
         std::println(stderr, "[-] CreateProcess failed {}", GetLastError());
         CloseHandle(write_end);
         CloseHandle(read_end);
-        return {};
+        return std::nullopt;
     }
     CloseHandle(write_end);
 
@@ -231,7 +236,7 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
         std::println(stderr, "[-] git failure, exit code: {}", code);
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
-        return { };
+        return std::nullopt;
     }
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
@@ -293,12 +298,12 @@ auto main( int argc, char** argv ) -> int {
         std::println( "[+] found refs: {} {} {} {}", local_ref, local_oid, remote_ref, remote_oid );
 
         auto out_mails = list_outgoing_author_emails( local_oid, remote_oid );
-        if ( out_mails.empty( ) ) {
-            return log_and_exit( "[-] failed to list outgoing author emails, blocking this push" ); // laziness
+        if ( !out_mails.has_value( ) ) {
+            return log_and_exit( "[-] failed to execute git commands, blocking this push" );
         }
-        std::println( "[+] outgoing author mails: {}", out_mails );
+        std::println( "[+] outgoing author mails: {}", out_mails.value() );
 
-        std::istringstream ss( out_mails );
+        std::istringstream ss( out_mails.value() );
         std::string email{ };
         while ( std::getline( ss, email ) ) {
             if ( email.empty( ) ) continue;
