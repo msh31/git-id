@@ -165,7 +165,7 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
         close( fds[0] );
         close( fds[1] );
 
-        std::vector<std::string> args{ "git", "log", "--format=%ae", remote + ".." + local };
+        std::vector<std::string> args{ "git", "log", "--format=%ae%n%ce", remote + ".." + local };
         std::vector<char*> argv;
         for ( auto& a : args ) {
             argv.push_back( a.data( ) );
