@@ -273,10 +273,14 @@ auto main( int argc, char** argv ) -> int {
     if (argc > 1 && std::strcmp(argv[1], "install") == 0) {
         bool is_global = argc > 2 && std::strcmp(argv[2], "--global") == 0;
 
-        if (!is_global && !fs::exists(".git/hooks")) {
+        auto git_val = run_git({ "git", "rev-parse", "--git-path", "hooks" });
+        if (!is_global && !git_val) {
             std::println(stderr, "[-] failed to find .git/hooks folder, are you sure this is a git repository?");
             return 1;
         }
+
+        std::string hooks_dir = git_val.value_or("");
+        hooks_dir.erase(hooks_dir.find_last_not_of("\r\n") + 1);
 
         fs::path tpf = "pre-push";
         fs::path sp{};
