@@ -10,6 +10,20 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+
+// platformzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif
+
+#if defined( __linux__ ) || defined( __APPLE__ )
+#include <unistd.h>
+#include <sys/wait.h>
+#include <cstring>
+#include <cerrno>
+#endif
 // clang-format on
 
 namespace fs = std::filesystem;
@@ -110,6 +124,67 @@ rules_t load_rules( const fs::path& p ) {
     return rules;
 }
 
+auto list_outgoing_author_emails( const std::string& local, const std::string& remote ) -> std::string {
+    std::string str{ };
+#if defined( __linux__ ) || defined( __APPLE__ )
+    int fds[2];
+    pipe( fds );
+
+    pid_t pid = fork( );
+    pid_t w = 0;
+    int status;
+
+    if ( pid > 0 ) {
+        close( fds[1] );
+
+        char buffer[4096];
+        ssize_t n;
+        while ( ( n = read( fds[0], buffer, sizeof buffer ) ) != 0 ) {
+            if ( n == -1 ) {
+                if ( errno == EINTR ) continue;
+                break;
+            }
+            str.append( buffer, n );
+        }
+
+        close( fds[0] );
+        w = waitpid( pid, &status, 0 );
+        if ( w == -1 ) {
+            std::println( "waitpid failed: {}", strerror( errno ) );
+            return { };
+        }
+    }
+
+    if ( pid == 0 ) {
+        if ( dup2( fds[1], STDOUT_FILENO ) == -1 ) {
+            std::println( "dup2 failed: {}", strerror( errno ) );
+            _exit( 1 );
+        }
+
+        // can fail but whatever
+        close( fds[0] );
+        close( fds[1] );
+
+        std::vector<std::string> args{ "git", "log", "--format=%ae", remote + ".." + local };
+        std::vector<char*> argv;
+        for ( auto& a : args ) {
+            argv.push_back( a.data( ) );
+        }
+        argv.push_back( nullptr );
+
+        execvp( "git", argv.data( ) );
+        _exit( 127 );
+    }
+#endif
+
+#ifdef _WIN32
+    // todo
+    // https://learn.microsoft.com/en-us/windows/win32/procthread/creating-processes
+#endif
+
+    return str;
+}
+
 auto main( int argc, char** argv ) -> int {
     auto log_and_exit = []( std::string_view msg ) -> int {
         std::println( stderr, "{}", msg );
@@ -147,14 +222,35 @@ auto main( int argc, char** argv ) -> int {
     }
 
     std::string line{ };
+    std::string local_ref, local_oid, remote_ref, remote_oid;
     while ( std::getline( std::cin, line ) ) {
         std::istringstream iss( line );
-        std::string local_ref, local_oid, remote_ref, remote_oid;
         iss >> local_ref >> local_oid >> remote_ref >> remote_oid;
         if ( !iss ) {
             return log_and_exit( "[-] failed to split refs, blocking this push!" );
         }
         std::println( "[+] found refs: {} {} {} {}", local_ref, local_oid, remote_ref, remote_oid );
+
+        auto out_mails = list_outgoing_author_emails( local_oid, remote_oid );
+        if ( out_mails.empty( ) ) {
+            return log_and_exit( "[-] failed to list outgoing author emails, blocking this push" ); // laziness
+        }
+        std::println( "[+] outgoing author mails: {}", out_mails );
+
+        std::istringstream ss( out_mails );
+        std::string email{ };
+        while ( std::getline( ss, email ) ) {
+            if ( email.empty( ) ) continue;
+
+            std::transform(
+                email.begin( ), email.end( ), email.begin( ), []( unsigned char c ) { return std::tolower( c ); } );
+
+            const auto& allowed = rules.at( owner );
+            if ( std::find( allowed.begin( ), allowed.end( ), email ) == allowed.end( ) ) {
+                auto str = std::format( "[-] failed to find {}, blocking this push!", email );
+                return log_and_exit( str );
+            }
+        }
     }
 
     return 0;
