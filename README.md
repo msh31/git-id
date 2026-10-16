@@ -2,11 +2,13 @@
 A simple hook for git that stops you from pushing commits that use the wrong identity
 
 ## What is this?
-git-id is a pre-push hook that checks the author and committer emails of outgoing commits against the owner of the repository in the remote URL.
+git-id is a pre-push hook that blocks outgoing commits by checking the author and committer emails of against the owner of the repository in the remote URL.
 
 Example:
-You have your user account and own an organization and you do not want either identity to accidentally leak into the other, this pre-push hook will block
-the outgoing commit(s)
+You define ``my-org: org@example.com`` in your config. You commit with ``me@personal.com`` and push to ``github.com/my-org/repo``. git-id lists the outgoing author mails and blocks the push until you fix the identity
+
+> [!WARNING]
+This does NOT hide your account from GitHub's activity feed, which shows who pushed
 
 ---
 
