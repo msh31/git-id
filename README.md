@@ -1,6 +1,11 @@
 # git-id
 A simple hook for git that stops you from pushing commits that use the wrong identity
 
+![Windows](https://img.shields.io/badge/Windows-blue)
+![FreeBSD](https://img.shields.io/badge/FreeBSD-red?logo=freebsd)
+
+---
+
 ## What is this?
 git-id is a pre-push hook that blocks outgoing commits by checking the author and committer emails of against the owner of the repository in the remote URL.
 
