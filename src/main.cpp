@@ -25,6 +25,12 @@
 #include <cstring>
 #include <cerrno>
 #endif
+
+#if defined (__FreeBSD__)
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <limits.h>
+#endif
 // clang-format on
 
 namespace fs = std::filesystem;
@@ -292,8 +298,22 @@ auto main( int argc, char** argv ) -> int {
             return 1;
         }
         sp = buffer;
-#elif defined (__linux__) || defined(__APPLE__)
-        //todo
+#elif defined (__FreeBSD__)
+        int mib[4];
+        mib[0] = CTL_KERN;
+        mib[1] = KERN_PROC;
+        mib[2] = KERN_PROC_PATHNAME;
+        mib[3] = -1;
+
+        char buffer[PATH_MAX];
+        size_t b_sz = sizeof(buffer);
+        if (sysctl(mib, 4, buffer, &b_sz, nullptr, 0) == -1) {
+            std::println(stderr, "[-] failed to get own path, abandoning install.");
+            return 1;
+        }
+        sp = buffer;
+#else //if defined (__linux__) || defined(__APPLE__)
+#error "UNSUPPORTED_PLATFORM"
 #endif
 
         fs::path tp{};
