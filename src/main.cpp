@@ -148,7 +148,7 @@ auto load_rules( const fs::path& p ) -> rules_t {
 auto run_git( const std::vector<std::string>& args ) -> std::optional<std::string> {
     std::string str{ };
 
-#if defined( __linux__ ) || defined( __APPLE__ )
+#if defined( __APPLE__ )
     int fds[2];
     pipe( fds );
 
