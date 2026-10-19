@@ -192,7 +192,7 @@ auto run_git( const std::vector<std::string>& args ) -> std::optional<std::strin
 
         std::vector<char*> argv;
         for ( auto& a : args ) {
-            argv.push_back( a.data( ) );
+            argv.push_back( const_cast<char*>( a.data( ) ) );
         }
         argv.push_back( nullptr );
 
