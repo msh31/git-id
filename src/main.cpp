@@ -200,9 +200,7 @@ auto run_git( const std::vector<std::string>& args ) -> std::optional<std::strin
         execvp( "git", argv.data( ) );
         _exit( 127 );
     }
-#endif
-
-#ifdef _WIN32
+#elifdef _WIN32
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
 
@@ -252,9 +250,9 @@ auto run_git( const std::vector<std::string>& args ) -> std::optional<std::strin
     }
     CloseHandle( pi.hProcess );
     CloseHandle( pi.hThread );
+#else
+    #error "UNSUPPORTED_PLATFORM"
 #endif
-
-    return str;
 }
 
 auto list_outgoing_author_emails( const std::string& local, const std::string& remote ) -> std::optional<std::string> {
