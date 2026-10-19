@@ -3,6 +3,7 @@ A simple hook for git that stops you from pushing commits that use the wrong ide
 
 ![Windows](https://img.shields.io/badge/Windows-blue)
 ![FreeBSD](https://img.shields.io/badge/FreeBSD-red?logo=freebsd)
+![macOS](https://img.shields.io/badge/macOS-black?logo=apple)
 
 ---
 
@@ -16,6 +17,14 @@ You define ``my-org: org@example.com`` in your config. You commit with ``me@pers
 This does NOT hide your account from GitHub's activity feed, which shows who pushed
 
 ---
+
+## Build
+The only commands you need are:
+```
+cmake -B build
+cmake --build build/
+```
+However, on ``FreeBSD`` you must use [Ninja](https://ninja-build.org/) and set it using ``EXPORT CMAKE_GENERATOR=Ninja`` in your shell/profile
 
 ## Install
 Simply run ``git-id install`` within a repository and the hook will be installed automatically!
