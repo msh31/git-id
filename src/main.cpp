@@ -19,11 +19,12 @@
 #include <windows.h>
 #endif
 
-#if defined( __linux__ ) || defined( __APPLE__ )
+#if defined( __APPLE__ )
 #include <unistd.h>
 #include <sys/wait.h>
 #include <cstring>
 #include <cerrno>
+#include <mach-o/dyld.h>
 #endif
 
 #if defined (__FreeBSD__)
@@ -311,7 +312,20 @@ auto main( int argc, char** argv ) -> int {
             return 1;
         }
         sp = buffer;
-#else // if defined (__linux__) || defined(__APPLE__)
+#elif defined( __APPLE__ )
+        // Source - https://stackoverflow.com/a/1024933
+        // Posted by mark4o, modified by community. See post 'Timeline' for change history
+        // Retrieved 2026-10-19, License - CC BY-SA 4.0
+
+        char path[1024];
+        uint32_t size = sizeof( path );
+        if ( _NSGetExecutablePath( path, &size ) == 0 ) {
+            sp = path;
+        } else {
+            std::println( stderr, "[-] failed to get own path, abandoning install." );
+            return 1;
+        }
+#else
     #error "UNSUPPORTED_PLATFORM"
 #endif
 
