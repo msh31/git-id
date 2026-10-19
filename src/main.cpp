@@ -257,6 +257,7 @@ auto run_git( const std::vector<std::string>& args ) -> std::optional<std::strin
 #else
     #error "UNSUPPORTED_PLATFORM"
 #endif
+    return str;
 }
 
 auto list_outgoing_author_emails( const std::string& local, const std::string& remote ) -> std::optional<std::string> {
