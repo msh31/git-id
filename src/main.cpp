@@ -28,9 +28,13 @@
 #endif
 
 #if defined (__FreeBSD__)
+#include <unistd.h>
+#include <sys/wait.h>
+#include <cstring>
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <limits.h>
+#include <cerrno>
 #endif
 // clang-format on
 
@@ -148,7 +152,7 @@ auto load_rules( const fs::path& p ) -> rules_t {
 auto run_git( const std::vector<std::string>& args ) -> std::optional<std::string> {
     std::string str{ };
 
-#if defined( __APPLE__ )
+#if defined( __APPLE__ ) || defined( __FreeBSD__ )
     int fds[2];
     pipe( fds );
 
