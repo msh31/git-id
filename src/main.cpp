@@ -117,15 +117,15 @@ auto load_rules( const fs::path& p ) -> rules_t {
             continue;
         }
 
-        std::istringstream kss(key);
+        std::istringstream kss( key );
         std::string owner_key{ };
-        std::vector<std::string> owners{};
-        while (std::getline(kss, owner_key, '|')) {
-            auto trimmed = trim(owner_key);
-            if (trimmed.empty()) {
+        std::vector<std::string> owners{ };
+        while ( std::getline( kss, owner_key, '|' ) ) {
+            auto trimmed = trim( owner_key );
+            if ( trimmed.empty( ) ) {
                 continue;
             }
-            owners.push_back(trimmed);
+            owners.push_back( trimmed );
         }
 
         std::istringstream ss( val );
@@ -135,8 +135,8 @@ auto load_rules( const fs::path& p ) -> rules_t {
             if ( trimmed.empty( ) ) {
                 continue;
             }
-            for (const auto& owner : owners) {
-                rules[owner].push_back(trimmed);
+            for ( const auto& owner : owners ) {
+                rules[owner].push_back( trimmed );
             }
         }
     }
@@ -144,60 +144,60 @@ auto load_rules( const fs::path& p ) -> rules_t {
     return rules;
 }
 
-auto run_git(const std::vector<std::string>& args) -> std::optional<std::string> {
+auto run_git( const std::vector<std::string>& args ) -> std::optional<std::string> {
     std::string str{ };
 
 #if defined( __linux__ ) || defined( __APPLE__ )
     int fds[2];
-    pipe(fds);
+    pipe( fds );
 
-    pid_t pid = fork();
+    pid_t pid = fork( );
     pid_t w = 0;
     int status;
 
-    if (pid > 0) {
-        close(fds[1]);
+    if ( pid > 0 ) {
+        close( fds[1] );
 
         char buffer[4096];
         ssize_t n;
-        while ((n = read(fds[0], buffer, sizeof buffer)) != 0) {
-            if (n == -1) {
-                if (errno == EINTR) continue;
+        while ( ( n = read( fds[0], buffer, sizeof buffer ) ) != 0 ) {
+            if ( n == -1 ) {
+                if ( errno == EINTR ) continue;
                 break;
             }
-            str.append(buffer, n);
+            str.append( buffer, n );
         }
 
-        close(fds[0]);
-        w = waitpid(pid, &status, 0);
-        if (w == -1) {
-            std::println(stderr, "waitpid failed: {}", strerror(errno));
+        close( fds[0] );
+        w = waitpid( pid, &status, 0 );
+        if ( w == -1 ) {
+            std::println( stderr, "waitpid failed: {}", strerror( errno ) );
             return std::nullopt;
         }
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-            std::println(stderr, "waitpid failed: status: {}", WEXITSTATUS(status));
+        if ( !WIFEXITED( status ) || WEXITSTATUS( status ) != 0 ) {
+            std::println( stderr, "waitpid failed: status: {}", WEXITSTATUS( status ) );
             return std::nullopt;
         }
     }
 
-    if (pid == 0) {
-        if (dup2(fds[1], STDOUT_FILENO) == -1) {
-            std::println(stderr, "dup2 failed: {}", strerror(errno));
-            _exit(1);
+    if ( pid == 0 ) {
+        if ( dup2( fds[1], STDOUT_FILENO ) == -1 ) {
+            std::println( stderr, "dup2 failed: {}", strerror( errno ) );
+            _exit( 1 );
         }
 
         // can fail but whatever
-        close(fds[0]);
-        close(fds[1]);
+        close( fds[0] );
+        close( fds[1] );
 
         std::vector<char*> argv;
-        for (auto& a : args) {
-            argv.push_back(a.data());
+        for ( auto& a : args ) {
+            argv.push_back( a.data( ) );
         }
-        argv.push_back(nullptr);
+        argv.push_back( nullptr );
 
-        execvp("git", argv.data());
-        _exit(127);
+        execvp( "git", argv.data( ) );
+        _exit( 127 );
     }
 #endif
 
@@ -205,52 +205,52 @@ auto run_git(const std::vector<std::string>& args) -> std::optional<std::string>
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
 
-    ZeroMemory(&si, sizeof(si));
-    si.cb = sizeof(si);
-    ZeroMemory(&pi, sizeof(pi));
+    ZeroMemory( &si, sizeof( si ) );
+    si.cb = sizeof( si );
+    ZeroMemory( &pi, sizeof( pi ) );
 
-    SECURITY_ATTRIBUTES sa{ sizeof(sa), nullptr, TRUE };
+    SECURITY_ATTRIBUTES sa{ sizeof( sa ), nullptr, TRUE };
     HANDLE read_end{ }, write_end{ };
-    CreatePipe(&read_end, &write_end, &sa, 0);
-    SetHandleInformation(read_end, HANDLE_FLAG_INHERIT, 0);
+    CreatePipe( &read_end, &write_end, &sa, 0 );
+    SetHandleInformation( read_end, HANDLE_FLAG_INHERIT, 0 );
 
     si.hStdOutput = write_end;
     si.dwFlags |= STARTF_USESTDHANDLES;
-    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    si.hStdError = GetStdHandle( STD_ERROR_HANDLE );
 
-    std::string argz{};
-    for (auto& a : args) {
-        if (!argz.empty()) argz += ' ';
+    std::string argz{ };
+    for ( auto& a : args ) {
+        if ( !argz.empty( ) ) argz += ' ';
         argz += a;
     }
 
-    if (!CreateProcessA(NULL, argz.data(), NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) {
-        std::println(stderr, "[-] CreateProcess failed {}", GetLastError());
-        CloseHandle(write_end);
-        CloseHandle(read_end);
+    if ( !CreateProcessA( NULL, argz.data( ), NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi ) ) {
+        std::println( stderr, "[-] CreateProcess failed {}", GetLastError( ) );
+        CloseHandle( write_end );
+        CloseHandle( read_end );
         return std::nullopt;
     }
-    CloseHandle(write_end);
+    CloseHandle( write_end );
 
     char buffer[4096];
     DWORD n = 0;
-    while (ReadFile(read_end, buffer, sizeof buffer, &n, nullptr) && n > 0) {
-        str.append(buffer, n);
+    while ( ReadFile( read_end, buffer, sizeof buffer, &n, nullptr ) && n > 0 ) {
+        str.append( buffer, n );
     }
-    CloseHandle(read_end);
+    CloseHandle( read_end );
 
-    WaitForSingleObject(pi.hProcess, INFINITE);
+    WaitForSingleObject( pi.hProcess, INFINITE );
 
     DWORD code = 0;
-    GetExitCodeProcess(pi.hProcess, &code);
-    if (code != 0) {
-        std::println(stderr, "[-] git failure, exit code: {}", code);
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
+    GetExitCodeProcess( pi.hProcess, &code );
+    if ( code != 0 ) {
+        std::println( stderr, "[-] git failure, exit code: {}", code );
+        CloseHandle( pi.hProcess );
+        CloseHandle( pi.hThread );
         return std::nullopt;
     }
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
+    CloseHandle( pi.hProcess );
+    CloseHandle( pi.hThread );
 #endif
 
     return str;
@@ -260,14 +260,13 @@ auto list_outgoing_author_emails( const std::string& local, const std::string& r
 
     std::vector<std::string> args = { "git", "log", "--format=%ae%n%ce" };
 
-    if (remote.find_first_not_of('0') == remote.npos) {
-        args.insert(args.end(), { local, "--not", "--remotes" });
-    }
-    else {
-        args.push_back(remote + ".." + local);
+    if ( remote.find_first_not_of( '0' ) == remote.npos ) {
+        args.insert( args.end( ), { local, "--not", "--remotes" } );
+    } else {
+        args.push_back( remote + ".." + local );
     }
 
-    return run_git(args);
+    return run_git( args );
 }
 
 auto main( int argc, char** argv ) -> int {
@@ -276,29 +275,29 @@ auto main( int argc, char** argv ) -> int {
         return 1;
     };
 
-    if (argc > 1 && std::strcmp(argv[1], "install") == 0) {
-        bool is_global = argc > 2 && std::strcmp(argv[2], "--global") == 0;
+    if ( argc > 1 && std::strcmp( argv[1], "install" ) == 0 ) {
+        bool is_global = argc > 2 && std::strcmp( argv[2], "--global" ) == 0;
 
-        auto git_val = run_git({ "git", "rev-parse", "--git-path", "hooks" });
-        if (!is_global && !git_val) {
-            std::println(stderr, "[-] failed to find .git/hooks folder, are you sure this is a git repository?");
+        auto git_val = run_git( { "git", "rev-parse", "--git-path", "hooks" } );
+        if ( !is_global && !git_val ) {
+            std::println( stderr, "[-] failed to find .git/hooks folder, are you sure this is a git repository?" );
             return 1;
         }
 
-        std::string hooks_dir = git_val.value_or("");
-        hooks_dir.erase(hooks_dir.find_last_not_of("\r\n") + 1);
+        std::string hooks_dir = git_val.value_or( "" );
+        hooks_dir.erase( hooks_dir.find_last_not_of( "\r\n" ) + 1 );
 
         fs::path tpf = "pre-push";
-        fs::path sp{};
+        fs::path sp{ };
 #ifdef _WIN32
         tpf += ".exe";
-        char buffer[MAX_PATH] ;
-        if (GetModuleFileNameA(nullptr, buffer, sizeof(buffer)) == 0) {
-            std::println(stderr, "[-] failed to get own path, abandoning install.");
+        char buffer[MAX_PATH];
+        if ( GetModuleFileNameA( nullptr, buffer, sizeof( buffer ) ) == 0 ) {
+            std::println( stderr, "[-] failed to get own path, abandoning install." );
             return 1;
         }
         sp = buffer;
-#elif defined (__FreeBSD__)
+#elif defined( __FreeBSD__ )
         int mib[4];
         mib[0] = CTL_KERN;
         mib[1] = KERN_PROC;
@@ -306,50 +305,50 @@ auto main( int argc, char** argv ) -> int {
         mib[3] = -1;
 
         char buffer[PATH_MAX];
-        size_t b_sz = sizeof(buffer);
-        if (sysctl(mib, 4, buffer, &b_sz, nullptr, 0) == -1) {
-            std::println(stderr, "[-] failed to get own path, abandoning install.");
+        size_t b_sz = sizeof( buffer );
+        if ( sysctl( mib, 4, buffer, &b_sz, nullptr, 0 ) == -1 ) {
+            std::println( stderr, "[-] failed to get own path, abandoning install." );
             return 1;
         }
         sp = buffer;
-#else //if defined (__linux__) || defined(__APPLE__)
-#error "UNSUPPORTED_PLATFORM"
+#else // if defined (__linux__) || defined(__APPLE__)
+    #error "UNSUPPORTED_PLATFORM"
 #endif
 
-        fs::path tp{};
-        if (is_global) {
-            auto ltp = config_path() / ".git-id" / "hooks"; //unlikely that home or userprofile isn't set if so, well too bad
+        fs::path tp{ };
+        if ( is_global ) {
+            auto ltp =
+                config_path( ) / ".git-id" / "hooks"; // unlikely that home or userprofile isn't set if so, well too bad
             tp = ltp / tpf;
             std::error_code ec;
-            fs::create_directories(ltp, ec);
-            if (ec) {
-                std::println(stderr, "[-] failed to create global config directory: {}", ec.message());
+            fs::create_directories( ltp, ec );
+            if ( ec ) {
+                std::println( stderr, "[-] failed to create global config directory: {}", ec.message( ) );
                 return 1;
             }
-        }
-        else {
+        } else {
             tp = ".git/hooks" / tpf;
         }
 
-        if (fs::exists(tp)) {
-            std::println(stderr, "[-] a pre-existing hook was found! abandoning install.");
+        if ( fs::exists( tp ) ) {
+            std::println( stderr, "[-] a pre-existing hook was found! abandoning install." );
             return 1;
         }
 
         std::error_code ec;
-        fs::copy_file(sp, tp, ec);
-        if (ec) {
-            std::println(stderr, "[-] failed to copy file for install purposes because: {}", ec.message());
+        fs::copy_file( sp, tp, ec );
+        if ( ec ) {
+            std::println( stderr, "[-] failed to copy file for install purposes because: {}", ec.message( ) );
             return 1;
         }
-        if (is_global) {
-            auto rg_res = run_git({ "git", "config", "--global", "core.hooksPath", tp.parent_path().string() });
-            if (rg_res == std::nullopt) {
-                std::println(stderr, "[-] failed to install globally!");
+        if ( is_global ) {
+            auto rg_res = run_git( { "git", "config", "--global", "core.hooksPath", tp.parent_path( ).string( ) } );
+            if ( rg_res == std::nullopt ) {
+                std::println( stderr, "[-] failed to install globally!" );
                 return 1;
             }
         }
-        std::println(stdout, "[+] succesfully installed git-id here: {}", tp.string());
+        std::println( stdout, "[+] succesfully installed git-id here: {}", tp.string( ) );
         return 0;
     }
 
@@ -403,9 +402,9 @@ auto main( int argc, char** argv ) -> int {
         if ( !out_mails.has_value( ) ) {
             return log_and_exit( "[-] failed to execute git commands, blocking this push" );
         }
-        std::println( "[+] outgoing author mails: {}", out_mails.value() );
+        std::println( "[+] outgoing author mails: {}", out_mails.value( ) );
 
-        std::istringstream ss( out_mails.value() );
+        std::istringstream ss( out_mails.value( ) );
         std::string email{ };
         while ( std::getline( ss, email ) ) {
             if ( email.empty( ) ) continue;
