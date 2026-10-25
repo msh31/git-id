@@ -221,10 +221,10 @@ auto run_git( const std::vector<std::string>& args ) -> std::optional<std::strin
     si.dwFlags |= STARTF_USESTDHANDLES;
     si.hStdError = GetStdHandle( STD_ERROR_HANDLE );
 
-    std::string argz{ };
+    std::string argz{};
     for ( auto& a : args ) {
         if ( !argz.empty( ) ) argz += ' ';
-        argz += a;
+        argz += std::format("{}{}{}", "\"", a, "\"");
     }
 
     if ( !CreateProcessA( NULL, argz.data( ), NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi ) ) {
