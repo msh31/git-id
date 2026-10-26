@@ -179,7 +179,11 @@ auto run_git( const std::vector<std::string>& args ) -> std::optional<std::strin
             std::println( stderr, "waitpid failed: {}", strerror( errno ) );
             return std::nullopt;
         }
-        if ( !WIFEXITED( status ) || WEXITSTATUS( status ) != 0 ) {
+        if (!WIFEXITED(status)) {
+            std::println(stderr, "waitpid failed, it was killed abruptly.");
+            return std::nullopt;
+        }
+        if ( WEXITSTATUS( status ) != 0 ) {
             std::println( stderr, "waitpid failed: status: {}", WEXITSTATUS( status ) );
             return std::nullopt;
         }
