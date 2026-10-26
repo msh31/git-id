@@ -1,2 +1,1 @@
-msh31|marco: marco@marco007.dev
 VeryCoolUsername: test@example.com, other@example.com
