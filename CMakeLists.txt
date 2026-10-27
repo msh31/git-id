@@ -36,6 +36,12 @@ project(git-id
 # Target: git-id
 set(git-id_SOURCES
 	cmake.toml
+	"src/config.cpp"
+	"src/config.hpp"
+	"src/git.cpp"
+	"src/git.hpp"
+	"src/hook.cpp"
+	"src/hook.hpp"
 	"src/main.cpp"
 )
 
