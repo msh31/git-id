@@ -13,7 +13,7 @@
 #include <string>
 
 namespace {
-    auto log_and_exit = []( std::string_view msg ) -> int {
+    auto log_and_block = []( std::string_view msg ) -> bool {
         std::println( stderr, "{}, blocking this push! You can bypass it by using 'git push --no-verify'", msg );
         return false;
     };
@@ -80,27 +80,27 @@ auto hook::install( int argc, char** argv ) -> bool {
 auto hook::run( std::string_view path ) -> bool {
     auto c_path = config::get_path( );
     if ( c_path.empty( ) ) {
-        return log_and_exit( "[-] failed to get environment variable for the config" );
+        return log_and_block( "[-] failed to get environment variable for the config" );
     }
 
     auto c_file = c_path / ".git-identities";
     if ( !fs::is_regular_file( c_file ) ) {
-        return log_and_exit( "[-] config file not found" );
+        return log_and_block( "[-] config file not found" );
     }
 
     auto rules = config::load_rules( c_file );
     if ( rules.empty( ) ) {
-        return log_and_exit( "[-] failed to load rules" ); // to be re-evaluated
+        return log_and_block( "[-] failed to load rules" ); // to be re-evaluated
     }
 
     auto owner = git::extract_owner( path );
     if ( owner.empty( ) ) {
-        return log_and_exit( "[-] failed to get owner of this repository" );
+        return log_and_block( "[-] failed to get owner of this repository" );
     }
     std::println( "[+] found repository owner: {}", owner );
 
     if ( rules.find( owner ) == rules.end( ) ) {
-        return log_and_exit( "[-] owner was not found in the rules" );
+        return log_and_block( "[-] owner was not found in the rules" );
     }
 
     std::string line{ };
@@ -109,7 +109,7 @@ auto hook::run( std::string_view path ) -> bool {
         std::istringstream iss( line );
         iss >> local_ref >> local_oid >> remote_ref >> remote_oid;
         if ( !iss ) {
-            return log_and_exit( "[-] failed to split refs" );
+            return log_and_block( "[-] failed to split refs" );
         }
 
         auto l_start = local_oid.find_first_not_of( '0' );
@@ -121,7 +121,7 @@ auto hook::run( std::string_view path ) -> bool {
 
         auto out_mails = git::list_outgoing_author_emails( local_oid, remote_oid );
         if ( !out_mails.has_value( ) ) {
-            return log_and_exit( "[-] failed to execute git commands, blocking this push" );
+            return log_and_block( "[-] failed to execute git commands, blocking this push" );
         }
         std::println( "[+] outgoing author mails: {}", out_mails.value( ) );
 
@@ -136,7 +136,7 @@ auto hook::run( std::string_view path ) -> bool {
             const auto& allowed = rules.at( owner );
             if ( std::find( allowed.begin( ), allowed.end( ), email ) == allowed.end( ) ) {
                 auto str = std::format( "[-] failed to find {}", email );
-                return log_and_exit( str );
+                return log_and_block( str );
             }
         }
     }
