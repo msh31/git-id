@@ -32,7 +32,9 @@ auto hook::install( int argc, char** argv ) -> bool {
     hooks_dir.erase( hooks_dir.find_last_not_of( "\r\n" ) + 1 );
 
     fs::path tpf = "pre-push";
-    // fs::path sp{ };
+#ifdef _WIN32
+    tpf += ".exe";
+#endif
 
     fs::path tp{ };
     if ( is_global ) {

@@ -32,13 +32,12 @@ auto git::get_own_path( ) -> std::optional<std::filesystem::path> {
     std::filesystem::path p{ };
 
 #ifdef _WIN32
-    tpf += ".exe";
     char buffer[MAX_PATH];
     if ( GetModuleFileNameA( nullptr, buffer, sizeof( buffer ) ) == 0 ) {
         std::println( stderr, "[-] failed to get own path, abandoning install." );
         return std::nullopt;
     }
-    sp = buffer;
+    p = buffer;
 #elif defined( __FreeBSD__ )
     int mib[4];
     mib[0] = CTL_KERN;
@@ -209,7 +208,8 @@ auto git::run_git( const std::vector<std::string>& args ) -> std::optional<std::
         CloseHandle( pi.hThread );
         return std::nullopt;
     }
-    CloseHandle( pi.hProcess ) CloseHandle( pi.hThread );
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
 #else
     #error "UNSUPPORTED_PLATFORM"
 #endif
