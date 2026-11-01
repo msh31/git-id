@@ -51,7 +51,7 @@ auto git::get_own_path( ) -> std::optional<std::filesystem::path> {
         std::println( stderr, "[-] failed to get own path, abandoning install." );
         return std::nullopt;
     }
-    sp = buffer;
+    p = buffer;
 #elif defined( __APPLE__ )
     // Source - https://stackoverflow.com/a/1024933
     // Posted by mark4o, modified by community. See post 'Timeline' for change history
